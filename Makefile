@@ -1,10 +1,4 @@
-MAINTAINER=Johnathan Kupferer <jtk@uic.edu>
-PROJNAME=UIC-DBIC
-PROJTYPE=library
-VERSION=trunk
-DIST=`if [ -e /etc/redhat-release ]; then sed -r 's/.*release ([0-9]+).*/.el\1/' /etc/redhat-release; elif [ -e /etc/fedora-release ]; then sed -r 's/.*release ([0-9]+).*/.fc\1/' /etc/fedora-release; elif [ -e /etc/centos-release ]; then sed -r 's/.*release ([0-9]+).*/.el\1/' /etc/centos-release; fi`
-
-.PHONY: help all test clean install
+.PHONY: help all test clean install installdeps
 
 help:
 	@echo
@@ -21,7 +15,7 @@ help:
 	@echo "  make install"
 	@echo
 
-all: Build
+all: Build README.md
 
 README.md: lib/UIC/DBIx/Class/UserBasedAccess.pm
 	pod2markdown lib/UIC/DBIx/Class/UserBasedAccess.pm >README.md
@@ -42,5 +36,8 @@ commit: clean README.md
 status: clean README.md
 	git status
 
-install: Build
+install: installdeps
 	./Build install
+
+installdeps: Build
+	./Build installdeps
