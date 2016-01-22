@@ -100,6 +100,7 @@ use DateTime ();
 use DBIx::Class::UserBasedAccess::ResultSet;
 use POSIX qw(strftime);
 
+our $VERSION = '0.001';
 our $LOCAL_TZ = DateTime::TimeZone->new( name => 'local' );
 
 ### Strictly internal methods ###
