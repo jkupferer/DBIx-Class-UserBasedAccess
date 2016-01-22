@@ -1,0 +1,5 @@
+Build.PL
+t/basics.t
+lib/DBIx/Classe/UserBasedAccess.pm
+lib/DBIx/Classe/UserBasedAccess/ResultSet.pm
+Makefile
