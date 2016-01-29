@@ -108,7 +108,7 @@ sub search
 
     my $security_query = $self->get_user_search_restrictions($effective_user, $attr);
     return $self->next::method($query, $attr) unless $security_query;
-
+    return $self->next::method($security_query, $attr) unless $query;
     return $self->next::method({-AND => [$security_query, $query]}, $attr);
 }
 
