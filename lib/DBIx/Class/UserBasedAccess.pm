@@ -12,7 +12,7 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
 
     has 'effective_user'  => (is => 'rw', isa => 'Object');
     has 'real_user'       => (is => 'rw', isa => 'Object');
-    has 'in_access_check' => (is => 'rw', isa => 'Bool', default => 0);
+    has 'bypass_search_restrictions' => (is => 'rw', isa => 'Bool', default => 0);
 
 =head2 User Result Class
 
@@ -217,11 +217,11 @@ sub user_allowed_actions : method
     my $schema = $self->result_source->schema;
     $user ||= $schema->effective_user;
 
-    return $self->__user_allowed_actions($user) if $schema->in_access_check;
+    return $self->__user_allowed_actions($user) if $schema->bypass_search_restrictions;
 
-    $schema->in_access_check( 1 );
+    $schema->bypass_search_restrictions( 1 );
     my @actions = $self->__user_allowed_actions($user);
-    $schema->in_access_check( 0 );
+    $schema->bypass_search_restrictions( 0 );
 
     return @actions;
 }
@@ -229,8 +229,8 @@ sub user_allowed_actions : method
 =item $obj->__user_allowed_actions( $user )
 
 Override this method in subclasses to return list of allowed actions for user.
-The user variable is guaranteed to be passed and the in_access_check flag will
-be handled automatically.
+The user variable is guaranteed to be passed and the bypass_search_restrictions
+flag will be handled automatically.
 
 =cut
 
@@ -267,18 +267,18 @@ sub check_user_access : method
     my($self, $action, $user) = @_;
     my $schema = $self->result_source->schema;
 
-    # The purpose of in_access_check is to allow checks to read any data from
+    # The purpose of bypass_search_restrictions is to allow checks to read any data from
     # the database as required to perform the check. It may be the case that a
     # user does not have access normally to select records to indicate whether
     # their access should be permitted.
 
     # Allow any select if we are in an access check.
-    return 1 if $action eq 'select' and $schema->in_access_check;
+    return 1 if $action eq 'select' and $schema->bypass_search_restrictions;
 
     # Mark that we are performing an access check and whether we need to
     # exit the access check.
-    my $entered_access_check = !$schema->in_access_check;
-    $schema->in_access_check( 1 );
+    my $entered_restriction_bypass = !$schema->bypass_search_restrictions;
+    $schema->bypass_search_restrictions( 1 );
 
     my $ret = eval {
         # All access checks are based on the database schema's current effective
@@ -310,8 +310,8 @@ sub check_user_access : method
         $ret = 0;
     }
 
-    # Clear in_access_check flag if it was set.
-    $schema->in_access_check( 0 ) if $entered_access_check;
+    # Clear bypass_search_restrictions flag if it was set.
+    $schema->bypass_search_restrictions( 0 ) if $entered_restriction_bypass;
 
     return $ret;
 }

@@ -16,7 +16,7 @@ sub get_user_search_restrictions
     my $schema = $self->result_source->schema;
     my $save_effective_user;
 
-    $schema->in_access_check(1);
+    $schema->bypass_search_restrictions(1);
 
     # Call user_search_restrictions to get query.
     my($query);
@@ -26,7 +26,7 @@ sub get_user_search_restrictions
     my $err = $@;
 
     # Exit access check mode
-    $schema->in_access_check(0);
+    $schema->bypass_search_restrictions(0);
 
     # Rethrow error if error occurred while calling user_search_restrictions.
     die $err if $err;
@@ -80,7 +80,7 @@ sub get_user_search_restrictions
 #    return unless $obj;
 #
 #    my $schema = $self->result_source->schema;
-#    return $obj if $schema->in_access_check;
+#    return $obj if $schema->bypass_search_restrictions;
 #
 #    return unless $obj->check_user_access('select');
 #    return $obj;
@@ -95,7 +95,7 @@ sub search
     # Perform normal search if already in an access_check and no
     # user_search_restrictions implemented for this result set.
     return $self->next::method($query, $attr)
-      if $schema->can('in_access_check') && $schema->in_access_check
+      if $schema->bypass_search_restrictions
       or ! $self->can('user_search_restrictions');
 
     my $effective_user_accessor = $schema->can('effective_user') ? 'effective_user' : 'effectiveUser';
