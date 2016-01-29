@@ -73,25 +73,18 @@ sub get_user_search_restrictions
     return $query;
 }
 
-sub find
-{
-    my $self = shift;
-    my $obj = $self->next::method(@_);
-    return unless $obj;
-
-    my $schema = $self->result_source->schema;
-    my $save_effective_user;
-
-    return $obj if $schema->in_access_check;
-    $schema->in_access_check(1);
-
-    my $permit_access = $obj->check_user_access('select');
-
-    $schema->in_access_check(0);
-
-    return unless $permit_access;
-    return $obj;
-}
+#sub find
+#{
+#    my $self = shift;
+#    my $obj = $self->next::method(@_);
+#    return unless $obj;
+#
+#    my $schema = $self->result_source->schema;
+#    return $obj if $schema->in_access_check;
+#
+#    return unless $obj->check_user_access('select');
+#    return $obj;
+#}
 
 sub search
 {
