@@ -150,27 +150,26 @@ sub __set_auto_columns : method
 {
     my($self, $action) = @_;
     my $schema = $self->result_source->schema;
-    my $name_accessor = $self->user_name_accessor;
 
-    if( $self->last_modified_by_column ) {
-        my $last_modified_by = $self->last_modified_by_column;
-        $self->$last_modified_by($schema->real_user->$name_accessor);
+    if( $self->can('last_modified_by_accessor') ) {
+        my $last_modified_by = $self->last_modified_by_accessor;
+        $self->$last_modified_by($schema->real_user->user_name);
     }
 
-    if( $self->last_modified_datetime_column ) {
-        my $last_modified_by = $self->last_modified_date_column;
-        $self->$last_modified_by( DateTime->now( time_zone => $LOCAL_TZ  ) );
+    if( $self->can('last_modified_datetime_accessor') ) {
+        my $last_modified_datetime = $self->last_modified_datetime_accessor;
+        $self->$last_modified_datetime( DateTime->now( time_zone => $LOCAL_TZ  ) );
     }
 
     if( $action eq 'insert' ) {
-        if( $self->result_class->created_by_column ) {
-            my $created_by = $self->created_by_column;
-            $self->$created_by($schema->real_user->$name_accessor);
+        if( $self->result_class->can('created_by_accessor') ) {
+            my $created_by = $self->created_by_accessor;
+            $self->$created_by($schema->real_user->user_name);
         }
 
-        if( $self->result_class->created_datetime_column ) {
-             my $create_date = $self->result_class->create_date_column;
-             $self->$create_date( DateTime->now( time_zone => $LOCAL_TZ ) );
+        if( $self->result_class->can('created_datetime_accessor') ) {
+             my $create_datetime = $self->result_class->create_datetime_accessor;
+             $self->$create_datetime( DateTime->now( time_zone => $LOCAL_TZ ) );
         }
     }
 }
