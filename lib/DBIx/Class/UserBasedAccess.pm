@@ -21,19 +21,28 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     );
 
     # Class must implement global_admin function or user table must have
-    # it as a column.
+    # it as a accessor.
     sub global_admin : method
     {
         my $self = shift;
         return $self->admin ? 1 : 0;
     }
 
+    # user_name method or accessor must be provided if the result classes
+    # specify a last_modified_by_accessor or created_by_accessor.
     sub user_name : method
         my $self = shift;
         return $self->name;
     }
 
 =head2 In Result Classes
+
+    # Set these constants or methods to enable auto-setting of columns to
+    # track create and modification user and date/time.
+    use constant last_modified_by_accessor => 'muser';
+    use constant last_modified_datetime_accessor => 'mtime';
+    use constant created_by_accessor => 'cuser';
+    use constant create_datetime_accessor => 'ctime';
 
     sub __user_allowed_actions : method
     {
