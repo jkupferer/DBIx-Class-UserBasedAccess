@@ -35,7 +35,7 @@ my $stmt2 = qq(CREATE TABLE POST
 	private		  	BOOLEAN	NOT NULL,
        	last_modified_by	TEXT	NOT NULL,
        	last_modified_date 	TEXT	NOT NULL,
-       	created_by	  	TEXT	NOT_NULL,
+       	created_by	  	TEXT	NOT NULL,
        	created_on_date	  	TEXT	NOT NULL););
 
 my $rv2 = $dbh->do($stmt2);
