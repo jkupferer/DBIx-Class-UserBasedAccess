@@ -2,6 +2,7 @@ package DBIx::Class::UserBasedAccess::ResultSet;
 use strict;
 use warnings;
 use base 'DBIx::Class::ResultSet';
+use constant NO_ACCESS => -1;
 
 =item $rs->get_user_search_restrictions($user, $attr)
 
@@ -34,8 +35,11 @@ sub get_user_search_restrictions
     # user_search_restrictions indicates no sequrity filter query.
     return unless $filter;
 
-    # Make certain that columns used in security query are part of results
-    # returned. If columns are not specified, then query implies that all
+    # Return NO_ACCESS user_search_restrictions returned NO_ACCESS
+    return NO_ACCESS if $filter == NO_ACCESS;
+
+    # Make certain that columns used in security filter are part of results
+    # returned. If columns are not specified, then filter implies that all
     # columns should be returned.
     #
     # This only tries to find the obvious cases. Classes may need to manipulate
@@ -111,6 +115,10 @@ sub search
     unless( $security_filter ) {
         # If no security filter was returned, then just run the original query.
         return $self->next::method($query, $attr);
+    } elsif( $security_filter == NO_ACCESS ) {
+        # If the security query returned NO_ACCESS, then return either an empty
+        # list or an empty resultset.
+	return $self->search_literal('1=0');
     } elsif( $query ) {
         # If there is a query, we need to AND together the query and the filter
         # and only return rows that match both conditions.
