@@ -18,10 +18,10 @@ sub get_user_search_restrictions
 
     $schema->bypass_search_restrictions(1);
 
-    # Call user_search_restrictions to get query.
-    my($query);
+    # Call user_search_restrictions to get filter.
+    my($filter);
     eval {
-        $query = $self->user_search_restrictions($user, $attr);
+        $filter = $self->user_search_restrictions($user, $attr);
     };
     my $err = $@;
 
@@ -32,7 +32,7 @@ sub get_user_search_restrictions
     die $err if $err;
 
     # user_search_restrictions indicates no sequrity filter query.
-    return unless $query;
+    return unless $filter;
 
     # Make certain that columns used in security query are part of results
     # returned. If columns are not specified, then query implies that all
@@ -44,12 +44,12 @@ sub get_user_search_restrictions
     my $cols = $attr->{cols} ? 'cols' : 'columns';
     if( $attr->{$cols} and 'ARRAY' eq ref $attr->{$cols} ) {
         my @add_cols;
-        if( 'HASH' eq ref $query ) {
+        if( 'HASH' eq ref $filter ) {
             # Most queries will be hashes.
-            @add_cols = keys %$query;
-        } elsif( 'ARRAY' eq ref $query ) {
+            @add_cols = keys %$filter;
+        } elsif( 'ARRAY' eq ref $filter ) {
             # Arrays are hard... just take a rough stab at it.
-            @add_cols = grep { !ref($_) } @$query;
+            @add_cols = grep { !ref($_) } @$filter;
         }
 
         for my $c ( @add_cols ) {
@@ -70,7 +70,7 @@ sub get_user_search_restrictions
         }
     }
 
-    return $query;
+    return $filter;
 }
 
 #sub find
@@ -106,10 +106,19 @@ sub search
         return $self->next::method($query, $attr) if $effective_user->$global_admin_accessor;
     }
 
-    my $security_query = $self->get_user_search_restrictions($effective_user, $attr);
-    return $self->next::method($query, $attr) unless $security_query;
-    return $self->next::method($security_query, $attr) unless $query;
-    return $self->next::method({-AND => [$security_query, $query]}, $attr);
+    my $security_filter = $self->get_user_search_restrictions($effective_user, $attr);
+
+    unless( $security_filter ) {
+        # If no security filter was returned, then just run the original query.
+        return $self->next::method($query, $attr);
+    } elsif( $query ) {
+        # If there is a query, we need to AND together the query and the filter
+        # and only return rows that match both conditions.
+        return $self->next::method({-AND => [$security_filter, $query]}, $attr);
+    } else {
+        # No query, so just return everything that matches the filter.
+        return $self->next::method($security_filter, $attr);
+    }
 }
 
 sub update : method
