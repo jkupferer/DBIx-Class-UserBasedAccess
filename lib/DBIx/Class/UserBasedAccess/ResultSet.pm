@@ -118,7 +118,7 @@ sub search
     } elsif( $security_filter == NO_ACCESS ) {
         # If the security query returned NO_ACCESS, then return either an empty
         # list or an empty resultset.
-	return $self->search_literal('1=0');
+	return $self->next::method(\'1=0', $attr);
     } elsif( $query ) {
         # If there is a query, we need to AND together the query and the filter
         # and only return rows that match both conditions.
