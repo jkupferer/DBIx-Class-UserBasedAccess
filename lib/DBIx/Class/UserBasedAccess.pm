@@ -280,7 +280,7 @@ sub check_user_access : method
     my $entered_restriction_bypass = !$schema->bypass_search_restrictions;
     $schema->bypass_search_restrictions( 1 );
 
-    my $ret = eval {
+    my($allow, $message) = eval {
         # All access checks are based on the database schema's current effective
         # user.
         my $user ||= $schema->effective_user;
@@ -307,13 +307,14 @@ sub check_user_access : method
     };
     if( $@ ) {
         warn $@;
-        $ret = 0;
+        $allow = 0;
+        $message = "Error $@";
     }
 
     # Clear bypass_search_restrictions flag if it was set.
     $schema->bypass_search_restrictions( 0 ) if $entered_restriction_bypass;
 
-    return $ret;
+    return($allow, $message);
 }
 
 =back
