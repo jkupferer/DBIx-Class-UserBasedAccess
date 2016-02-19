@@ -10,6 +10,7 @@ my $mb = Module::Build->new(
         'DBIx::Class' => undef,
         'Moose' => undef,
         'MooseX::Aliases' => undef,
+        'MooseX::MarkAsMethods' => undef,
     },
 );
 $mb->create_build_script();
