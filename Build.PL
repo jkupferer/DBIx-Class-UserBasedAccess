@@ -11,6 +11,7 @@ my $mb = Module::Build->new(
         'Moose' => undef,
         'MooseX::Aliases' => undef,
         'MooseX::MarkAsMethods' => undef,
+	'MooseX::NonMoose' => undef,
     },
 );
 $mb->create_build_script();
