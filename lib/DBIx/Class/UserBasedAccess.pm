@@ -48,17 +48,14 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     {
         my($self, $user) = @_;
 
-        # Allow select when no effective user is set.
-        return qw(select) unless $user;
-
         # Allow full access to global admins
-        return qw(delete insert select update) if $user->global_admin;
+        return qw(delete insert update) if $user->global_admin;
 
-        # Allow select and update if user id matches object's "owner_id".
-        return qw(select update) if $self->owner_id == $user->id;
+        # Allow update if user id matches object's "owner_id".
+        return qw(update) if $self->owner_id == $user->id;
 
-        # Everyone else only has select access.
-        return qw(select);
+        # No actions allowed otherwise.
+        return qw();
     }
 
     # Example of custom check with error message
@@ -237,8 +234,8 @@ flag will be handled automatically.
 sub __user_allowed_actions : method
 {
     my($self, $user);
-    return qw(delete insert select update) if $user->global_admin;
-    return qw(select);
+    return qw(delete insert update) if $user and $user->global_admin;
+    return ();
 }
 
 =item $obj->user_may( $action, $user )
@@ -267,13 +264,10 @@ sub check_user_access : method
     my($self, $action, $user) = @_;
     my $schema = $self->result_source->schema;
 
-    # The purpose of bypass_search_restrictions is to allow checks to read any data from
-    # the database as required to perform the check. It may be the case that a
-    # user does not have access normally to select records to indicate whether
-    # their access should be permitted.
-
-    # Allow any select if we are in an access check.
-    return 1 if $action eq 'select' and $schema->bypass_search_restrictions;
+    # The purpose of bypass_search_restrictions is to allow checks to read any
+    # data from the database as required to perform the check. It may be the
+    # case that a user does not have access normally to select records to
+    # indicate whether their access should be permitted.
 
     # Mark that we are performing an access check and whether we need to
     # exit the access check.
@@ -285,8 +279,8 @@ sub check_user_access : method
         # user.
         my $user ||= $schema->effective_user;
 
-        # Only action select is allowed anonymous
-        return 0 unless $user or $action eq 'select';
+        # No actions allowed to anonymous user.
+        return 0 unless $user;
 
         # Allow any action to global admins.
         return 1 if $user and $user->global_admin;
