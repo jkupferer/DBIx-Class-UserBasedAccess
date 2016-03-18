@@ -298,7 +298,7 @@ sub check_user_access : method
 
         # Allow action if user has corresponding privilege.
 	if( $user->can('user_has_priv') ) {
-            $user->user_has_priv($self->result_source->name . ".$action");
+            return 1 if $user->user_has_priv($self->result_source->name . ".$action");
         }
 
         # Deny
