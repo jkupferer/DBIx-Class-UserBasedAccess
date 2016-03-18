@@ -20,12 +20,32 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
       "UserBasedAccess"
     );
 
-    # Class must implement global_admin function or user table must have
+    # User class must implement global_admin function or user table must have
     # it as a accessor.
     sub global_admin : method
     {
         my $self = shift;
         return $self->admin ? 1 : 0;
+    }
+
+    # User class may implement a has_priv function that takes a string
+    # of the form Type.action and should return 0 or 1 based on whether
+    # the user should be allowed to do the specified action on the specified
+    # type of object.
+    sub has_priv : method
+    {
+        my $self = shift;
+        my($priv) = @_;
+        my($type, $action) = split '.', $priv;
+
+        # Maybe our user object has a relationship called privs...
+        return 1 if $self->privs->search({ name => '$priv' })->count;
+
+        # Maybe we decided to implement a priv named Type.*...
+        return 1 if $self->privs->search({ name => "$type.*" })->count;
+
+        # No access.
+        return 0;
     }
 
     # user_name method or accessor must be provided if the result classes
@@ -44,6 +64,7 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     use constant created_by_accessor => 'cuser';
     use constant create_datetime_accessor => 'ctime';
 
+    # General access rights for a user for this object.
     sub __user_allowed_actions : method
     {
         my($self, $user) = @_;
@@ -63,11 +84,58 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     {
         my($self, $user) = @_;
 
+        # Example implementing access based on changes or values...
         my %changes = $self->get_dirty_columns;
         return(0, "Not allowed to change monthly charge!") if $changes{monthly_charge};
 
-        # Defer to default behavior of checking __user_allowed_actions().
+        # Defer to default behavior of checking __user_allowed_actions() and privs.
         return;
+    }
+
+    # You can protect any method on your objects, not just insert, update, delete...
+    sub frobnobicate : method
+    {
+        my($self) = @_;
+
+        # Access check
+        my($allow, $err) = $self->user_may('frobnobicate');
+        die "$err" if $err;
+        die "Permissioned denied to frobnobicate this thing\n" unless $allow;
+
+        # Rest of the method...
+    }
+
+=head2 In ResultSet Classes
+
+    package UIC::DBIC::IAM::ResultSet::SomeThing;
+    use strict;
+    use warnings;
+    use base 'DBIx::Class::UserBasedAccess::ResultSet';
+
+    # Searches are by default unrestricted, use user_search_restrictions method
+    # to give restrictions to AND onto your queries.
+    sub user_search_restrictions : method
+    {
+        my($self,$user,$attr) = @_;
+
+        # Let's implement a search_restrict attribute on our searches so our
+        # calling app can request custom restrictions.
+        my $restrict = $attr->{search_restrict} || 'default';
+
+        # User may be undefined... let's block all access in that case.
+        return $self->NO_ACCESS unless $user;
+
+        if( $restrict eq 'for_admin' ) {
+             # Example where users can only update if the user id is the
+             # owner_id.
+             return { owner_id => $user->id };
+        } elsif( $user->has_priv('select_any') ) {
+             # undef means no restrictions, also showing mixing in privs.
+             return undef;
+        } else {
+             # Default restrictions, using a relationship.
+             return { some_relation.public => 1 };
+        }
     }
 
 =head2 In Code
@@ -77,9 +145,20 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     $dbic->effective_user($user_object );
     $dbic->real_user( $user_object );
 
+    # ResultSet restrictions place filters on search and find.
+    $thing = $dbic->resultset('SomeThing')->find(9999);
+
+    # When rendering a template or UI you might want to check in advance
+    # to see if a user has update rights...
+    if( $thing->user_may('update') ) {
+        # Render edit template...
+    } else {
+        # Render read-only display template...
+    }
+
+    # When performing standard actions action checks are built in.
     my $row;
     eval {
-        $row = $dbic->resultset('Widget')->find(9999);
         $row->style('round');
         $row->update();
     };
@@ -95,6 +174,31 @@ This DBIx::Class component adds access control and features around user based
 access control in a database. The assumption is that in the database there is
 some table and result class that represents users authenticating to the
 database backed application.
+
+=head2 Understanding Access Control
+
+Access control is managed through ResultSet classes for search and find
+restrictions and through Result classes for all other actions. For ResultSet
+the restrictions are implemented through user_search_restrictions. For other
+actions (insert, update, detele) these are implemented on the Result class
+named __user_may_*, __user_allowed_actions or the has_priv method on the user
+class.
+
+=head3 ResultSet user_search_restrictions
+
+FIXME - Document This Feature!
+
+=head3 Result __user_may_*
+
+FIXME - Document This Feature!
+
+=head3 Result __user_allowed_actions
+
+FIXME - Document This Feature!
+
+=head3 User has_priv
+
+FIXME - Document This Feature!
 
 =cut
 

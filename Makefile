@@ -17,8 +17,8 @@ help:
 
 all: Build README.md
 
-README.md: lib/UIC/DBIx/Class/UserBasedAccess.pm
-	pod2markdown lib/UIC/DBIx/Class/UserBasedAccess.pm >README.md
+README.md: lib/DBIx/Class/UserBasedAccess.pm
+	pod2markdown lib/DBIx/Class/UserBasedAccess.pm >README.md
 
 Build: Build.PL
 	perl Build.PL
