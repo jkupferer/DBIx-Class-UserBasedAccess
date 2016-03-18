@@ -313,7 +313,8 @@ sub check_user_access : method
     # Clear bypass_search_restrictions flag if it was set.
     $schema->bypass_search_restrictions( 0 ) if $entered_restriction_bypass;
 
-    return($allow, $message);
+    return($allow, $message) if wantarray;
+    return $allow;
 }
 
 =back
