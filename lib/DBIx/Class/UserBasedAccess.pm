@@ -296,6 +296,11 @@ sub check_user_access : method
         my @allowed_actions = $self->__user_allowed_actions($user);
         return 1 if grep { $_ eq $action } @allowed_actions;
 
+        # Allow action if user has corresponding privilege.
+	if( $user->can('user_has_priv') ) {
+            $user->user_has_priv($self->result_source->name . ".$action");
+        }
+
         # Deny
         return 0;
     };
