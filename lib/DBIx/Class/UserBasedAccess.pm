@@ -12,6 +12,7 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
 
     has 'effective_user'  => (is => 'rw', isa => 'Object');
     has 'real_user'       => (is => 'rw', isa => 'Object');
+    has 'bypass_access_checks' => (is => 'rw', isa => 'Bool', default => 0);
     has 'bypass_search_restrictions' => (is => 'rw', isa => 'Bool', default => 0);
 
 =head2 User Result Class
@@ -318,11 +319,15 @@ sub user_allowed_actions : method
     my $schema = $self->result_source->schema;
     $user ||= $schema->effective_user;
 
+    # If already in bypass mode, then call __user_allowe_actions directly.
     return $self->__user_allowed_actions($user) if $schema->bypass_search_restrictions;
 
+    # Enter bypass mode and get search restrictions.
+    my @actions;
     $schema->bypass_search_restrictions( 1 );
-    my @actions = $self->__user_allowed_actions($user);
+    eval { @actions = $self->__user_allowed_actions($user) };
     $schema->bypass_search_restrictions( 0 );
+    die $@ if $@;
 
     return @actions;
 }
@@ -388,6 +393,10 @@ sub check_user_access : method
 
         # Allow any action to global admins.
         return 1 if $user and $user->global_admin;
+
+        # Return 1 if in bypass_access_checks mode.
+        return 1 if $schema->can('bypass_access_checks')
+            and $schema->bypass_access_checks;
 
         # Defer to function __user_may_<$action> if class implements it.
         my $may_action_check = "__user_may_$action";
