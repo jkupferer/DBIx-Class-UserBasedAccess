@@ -37,4 +37,10 @@ __PACKAGE__->has_many(
 );
 
 __PACKAGE__->meta->make_immutable;
+
+sub user_name : method
+{
+    my $self = shift;
+    return $self->name;
+}
 1;

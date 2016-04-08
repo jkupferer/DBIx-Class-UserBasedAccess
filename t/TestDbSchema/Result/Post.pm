@@ -8,6 +8,11 @@ __PACKAGE__->load_components(
   "UserBasedAccess",
 );
 
+use constant last_modified_by_accessor => 'last_modified_by';
+use constant last_modified_datetime_accessor => 'last_modified_date';
+use constant created_by_accessor => 'created_by';
+use constant created_datetime_accessor => 'created_on_date';
+
 __PACKAGE__->table("Post");
 
 __PACKAGE__->add_columns(
