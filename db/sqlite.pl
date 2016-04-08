@@ -4,8 +4,10 @@ use DBI;
 use strict;
 use warnings;
 
+use FindBin ();
+
 my $driver	= "SQLite";
-my $database 	= "test.db";
+my $database 	= "$FindBin::Bin/test.db";
 my $dsn = "DBI:$driver:dbname=$database";
 my $userid = "";
 my $password = "";
