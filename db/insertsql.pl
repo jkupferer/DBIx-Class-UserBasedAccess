@@ -24,7 +24,7 @@ my $stmt = qq(INSERT INTO USER (id,name,isAdmin)
 my $rv = $dbh->do($stmt) or die $DBI::errstr;
 # Create 2 NON-Admins
 $stmt = qq(INSERT INTO USER (id,name,isAdmin)
-	VALUES (2, 'Jonathan', 0));
+	VALUES (2, 'Johnathan', 0));
 my $rv = $dbh->do($stmt) or die $DBI::errstr;
 
 $stmt = qq(INSERT INTO USER (id,name,isAdmin)
