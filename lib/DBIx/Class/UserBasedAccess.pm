@@ -52,6 +52,7 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     # user_name method or accessor must be provided if the result classes
     # specify a last_modified_by_accessor or created_by_accessor.
     sub user_name : method
+    {
         my $self = shift;
         return $self->name;
     }
@@ -270,8 +271,8 @@ sub __set_auto_columns : method
         }
 
         if( $self->result_class->can('created_datetime_accessor') ) {
-             my $create_datetime = $self->result_class->create_datetime_accessor;
-             $self->$create_datetime( DateTime->now( time_zone => $LOCAL_TZ ) );
+             my $created_datetime = $self->result_class->created_datetime_accessor;
+             $self->$created_datetime( DateTime->now( time_zone => $LOCAL_TZ ) );
         }
     }
 }
