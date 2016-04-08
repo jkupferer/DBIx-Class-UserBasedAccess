@@ -12,6 +12,7 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
 
     has 'effective_user'  => (is => 'rw', isa => 'Object');
     has 'real_user'       => (is => 'rw', isa => 'Object');
+    has 'bypass_access_checks' => (is => 'rw', isa => 'Bool', default => 0);
     has 'bypass_search_restrictions' => (is => 'rw', isa => 'Bool', default => 0);
 
 =head2 User Result Class
@@ -20,12 +21,32 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
       "UserBasedAccess"
     );
 
-    # Class must implement global_admin function or user table must have
+    # User class must implement global_admin function or user table must have
     # it as a accessor.
     sub global_admin : method
     {
         my $self = shift;
         return $self->admin ? 1 : 0;
+    }
+
+    # User class may implement a has_priv function that takes a string
+    # of the form Type.action and should return 0 or 1 based on whether
+    # the user should be allowed to do the specified action on the specified
+    # type of object.
+    sub has_priv : method
+    {
+        my $self = shift;
+        my($priv) = @_;
+        my($type, $action) = split '.', $priv;
+
+        # Maybe our user object has a relationship called privs...
+        return 1 if $self->privs->search({ name => '$priv' })->count;
+
+        # Maybe we decided to implement a priv named Type.*...
+        return 1 if $self->privs->search({ name => "$type.*" })->count;
+
+        # No access.
+        return 0;
     }
 
     # user_name method or accessor must be provided if the result classes
@@ -44,21 +65,19 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     use constant created_by_accessor => 'cuser';
     use constant create_datetime_accessor => 'ctime';
 
+    # General access rights for a user for this object.
     sub __user_allowed_actions : method
     {
         my($self, $user) = @_;
 
-        # Allow select when no effective user is set.
-        return qw(select) unless $user;
-
         # Allow full access to global admins
-        return qw(delete insert select update) if $user->global_admin;
+        return qw(delete insert update) if $user->global_admin;
 
-        # Allow select and update if user id matches object's "owner_id".
-        return qw(select update) if $self->owner_id == $user->id;
+        # Allow update if user id matches object's "owner_id".
+        return qw(update) if $self->owner_id == $user->id;
 
-        # Everyone else only has select access.
-        return qw(select);
+        # No actions allowed otherwise.
+        return qw();
     }
 
     # Example of custom check with error message
@@ -66,11 +85,58 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     {
         my($self, $user) = @_;
 
+        # Example implementing access based on changes or values...
         my %changes = $self->get_dirty_columns;
         return(0, "Not allowed to change monthly charge!") if $changes{monthly_charge};
 
-        # Defer to default behavior of checking __user_allowed_actions().
+        # Defer to default behavior of checking __user_allowed_actions() and privs.
         return;
+    }
+
+    # You can protect any method on your objects, not just insert, update, delete...
+    sub frobnobicate : method
+    {
+        my($self) = @_;
+
+        # Access check
+        my($allow, $err) = $self->user_may('frobnobicate');
+        die "$err" if $err;
+        die "Permissioned denied to frobnobicate this thing\n" unless $allow;
+
+        # Rest of the method...
+    }
+
+=head2 In ResultSet Classes
+
+    package UIC::DBIC::IAM::ResultSet::SomeThing;
+    use strict;
+    use warnings;
+    use base 'DBIx::Class::UserBasedAccess::ResultSet';
+
+    # Searches are by default unrestricted, use user_search_restrictions method
+    # to give restrictions to AND onto your queries.
+    sub user_search_restrictions : method
+    {
+        my($self,$user,$attr) = @_;
+
+        # Let's implement a search_restrict attribute on our searches so our
+        # calling app can request custom restrictions.
+        my $restrict = $attr->{search_restrict} || 'default';
+
+        # User may be undefined... let's block all access in that case.
+        return $self->NO_ACCESS unless $user;
+
+        if( $restrict eq 'for_admin' ) {
+             # Example where users can only update if the user id is the
+             # owner_id.
+             return { owner_id => $user->id };
+        } elsif( $user->has_priv('select_any') ) {
+             # undef means no restrictions, also showing mixing in privs.
+             return undef;
+        } else {
+             # Default restrictions, using a relationship.
+             return { some_relation.public => 1 };
+        }
     }
 
 =head2 In Code
@@ -80,9 +146,20 @@ DBIx::Class::UserBasedAccess - DBIx::Class component for access control
     $dbic->effective_user($user_object );
     $dbic->real_user( $user_object );
 
+    # ResultSet restrictions place filters on search and find.
+    $thing = $dbic->resultset('SomeThing')->find(9999);
+
+    # When rendering a template or UI you might want to check in advance
+    # to see if a user has update rights...
+    if( $thing->user_may('update') ) {
+        # Render edit template...
+    } else {
+        # Render read-only display template...
+    }
+
+    # When performing standard actions action checks are built in.
     my $row;
     eval {
-        $row = $dbic->resultset('Widget')->find(9999);
         $row->style('round');
         $row->update();
     };
@@ -98,6 +175,31 @@ This DBIx::Class component adds access control and features around user based
 access control in a database. The assumption is that in the database there is
 some table and result class that represents users authenticating to the
 database backed application.
+
+=head2 Understanding Access Control
+
+Access control is managed through ResultSet classes for search and find
+restrictions and through Result classes for all other actions. For ResultSet
+the restrictions are implemented through user_search_restrictions. For other
+actions (insert, update, detele) these are implemented on the Result class
+named __user_may_*, __user_allowed_actions or the has_priv method on the user
+class.
+
+=head3 ResultSet user_search_restrictions
+
+FIXME - Document This Feature!
+
+=head3 Result __user_may_*
+
+FIXME - Document This Feature!
+
+=head3 Result __user_allowed_actions
+
+FIXME - Document This Feature!
+
+=head3 User has_priv
+
+FIXME - Document This Feature!
 
 =cut
 
@@ -217,11 +319,15 @@ sub user_allowed_actions : method
     my $schema = $self->result_source->schema;
     $user ||= $schema->effective_user;
 
+    # If already in bypass mode, then call __user_allowe_actions directly.
     return $self->__user_allowed_actions($user) if $schema->bypass_search_restrictions;
 
+    # Enter bypass mode and get search restrictions.
+    my @actions;
     $schema->bypass_search_restrictions( 1 );
-    my @actions = $self->__user_allowed_actions($user);
+    eval { @actions = $self->__user_allowed_actions($user) };
     $schema->bypass_search_restrictions( 0 );
+    die $@ if $@;
 
     return @actions;
 }
@@ -237,8 +343,8 @@ flag will be handled automatically.
 sub __user_allowed_actions : method
 {
     my($self, $user);
-    return qw(delete insert select update) if $user->global_admin;
-    return qw(select);
+    return qw(delete insert update) if $user and $user->global_admin;
+    return ();
 }
 
 =item $obj->user_may( $action, $user )
@@ -267,13 +373,10 @@ sub check_user_access : method
     my($self, $action, $user) = @_;
     my $schema = $self->result_source->schema;
 
-    # The purpose of bypass_search_restrictions is to allow checks to read any data from
-    # the database as required to perform the check. It may be the case that a
-    # user does not have access normally to select records to indicate whether
-    # their access should be permitted.
-
-    # Allow any select if we are in an access check.
-    return 1 if $action eq 'select' and $schema->bypass_search_restrictions;
+    # The purpose of bypass_search_restrictions is to allow checks to read any
+    # data from the database as required to perform the check. It may be the
+    # case that a user does not have access normally to select records to
+    # indicate whether their access should be permitted.
 
     # Mark that we are performing an access check and whether we need to
     # exit the access check.
@@ -285,11 +388,15 @@ sub check_user_access : method
         # user.
         my $user ||= $schema->effective_user;
 
-        # Only action select is allowed anonymous
-        return 0 unless $user or $action eq 'select';
+        # No actions allowed to anonymous user.
+        return 0 unless $user;
 
         # Allow any action to global admins.
         return 1 if $user and $user->global_admin;
+
+        # Return 1 if in bypass_access_checks mode.
+        return 1 if $schema->can('bypass_access_checks')
+            and $schema->bypass_access_checks;
 
         # Defer to function __user_may_<$action> if class implements it.
         my $may_action_check = "__user_may_$action";
@@ -301,6 +408,11 @@ sub check_user_access : method
         # Get list of allowed actions and allow or deny based off of this.
         my @allowed_actions = $self->__user_allowed_actions($user);
         return 1 if grep { $_ eq $action } @allowed_actions;
+
+        # Allow action if user has corresponding privilege.
+	if( $user->can('has_priv') ) {
+            return 1 if $user->has_priv($self->result_source->name . ".$action");
+        }
 
         # Deny
         return 0;
@@ -314,7 +426,8 @@ sub check_user_access : method
     # Clear bypass_search_restrictions flag if it was set.
     $schema->bypass_search_restrictions( 0 ) if $entered_restriction_bypass;
 
-    return($allow, $message);
+    return($allow, $message) if wantarray;
+    return $allow;
 }
 
 =back

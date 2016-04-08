@@ -77,19 +77,6 @@ sub get_user_search_restrictions
     return $filter;
 }
 
-#sub find
-#{
-#    my $self = shift;
-#    my $obj = $self->next::method(@_);
-#    return unless $obj;
-#
-#    my $schema = $self->result_source->schema;
-#    return $obj if $schema->bypass_search_restrictions;
-#
-#    return unless $obj->check_user_access('select');
-#    return $obj;
-#}
-
 sub search
 {
     my $self = shift;
