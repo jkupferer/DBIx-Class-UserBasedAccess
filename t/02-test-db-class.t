@@ -9,14 +9,16 @@ use lib $FindBin::Bin;
 
 use_ok('TestDbSchema');
 
-# Create test database
-system("$FindBin::Bin/../db/sqlite.pl");
-system("$FindBin::Bin/../db/insertsql.pl");
-
 my $driver	= "SQLite";
 my $database 	= "$FindBin::Bin/../db/test.db";
 my $dsn = "DBI:$driver:dbname=$database";
 my $db;
+
+# Create test database
+unlink $database;
+system("$FindBin::Bin/../db/sqlite.pl");
+system("$FindBin::Bin/../db/insertsql.pl");
+
 ok( $db = TestDbSchema->connect($dsn), "connect to test database" );
 
 my $dbuser;
