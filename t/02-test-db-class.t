@@ -76,7 +76,7 @@ eval{
 };
 ok( $@ =~ m/Permission denied/, "Failed to create post as non global admin Will" );
 
-# Verify non-admin can't update or delete 
+# Verify non-admin can't update 
 eval{
     $db->resultset('Post')->update({
         title => 'Global admin test post',
@@ -85,7 +85,7 @@ eval{
     });
 };
 print $@;
-
+# Verify non-admin can't delete 
 eval{
     $db->resultset('Post')->delete({
         title => 'Global admin test post',
