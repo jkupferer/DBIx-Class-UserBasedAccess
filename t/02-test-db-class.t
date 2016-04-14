@@ -74,7 +74,18 @@ eval{
         private => 0,
     });
 };
-ok( $@ =~ m/Permission denied/, "Fail to create post as non global admin Will" );
+ok( $@ =~ m/Permission denied/, "Failed to create post as non global admin Will" );
+
+# Verify non-admin can't update or delete 
+eval{
+    $db->resultset('Post')->update({
+        title => 'Global admin test post',
+        owner_id => $dbuser->id,
+        private => 0,
+    });
+};
+print $@;
+
 
 
 # vi: syntax=perl
