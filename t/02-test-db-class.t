@@ -86,6 +86,14 @@ eval{
 };
 print $@;
 
+eval{
+    $db->resultset('Post')->delete({
+        title => 'Global admin test post',
+        owner_id => 0,
+        private => 0,
+    });
+};
+
 
 
 # vi: syntax=perl
