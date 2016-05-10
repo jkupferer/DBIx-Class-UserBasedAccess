@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Test::More tests => 19;
+use Test::More tests => 20;
 
 use FindBin ();
 use lib "$FindBin::Bin/../lib";
@@ -61,6 +61,14 @@ is( $post->created_by, 'Daniel', 'Find who created the post...');
 # Check post created_datetime
 is( $post->created_on_date, "$now", 'Find date post was created on...');
 
+# Make sure global admin can update a post
+ok($db->resultset('Post')->update({
+    title => 'Global admin test post',
+    owner_id => $dbuser->id,
+    private => 0,
+    }), "update post as global admin Daniel" );
+
+
 # Verify non-admin can't create post.
 ok( $dbuser = $db->resultset('User')->find({ name => 'Will' }), "find Will user" );
 ok( $db->effective_user($dbuser), "set effective user to Will" );
@@ -75,7 +83,7 @@ eval{
     });
 };
 ok( $@ =~ m/Permission denied/, "Failed to create post as non global admin Will" );
-
+print $@;
 # Verify non-admin can't update 
 eval{
     $db->resultset('Post')->update({
@@ -93,6 +101,7 @@ eval{
         private => 0,
     });
 };
+
 
 
 
