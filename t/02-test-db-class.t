@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Test::More tests => 20;
+use Test::More tests => 21;
 
 use FindBin ();
 use lib "$FindBin::Bin/../lib";
@@ -84,25 +84,36 @@ eval{
 };
 ok( $@ =~ m/Permission denied/, "Failed to create post as non global admin Will" );
 print $@;
+
 # Verify non-admin can't update 
-eval{
-    $db->resultset('Post')->update({
-        title => 'Global admin test post',
-        owner_id => $dbuser->id,
-        private => 0,
-    });
-};
-print $@;
+
+ok($db->resultset('Post')->update({
+    title => 'Non-admin test post',
+    owner_id => $dbuser->id,
+    private => 0,
+    }), "cannot update post as non admin Will");
+
 # Verify non-admin can't delete 
-eval{
-    $db->resultset('Post')->delete({
-        title => 'Global admin test post',
-        owner_id => 0,
-        private => 0,
-    });
-};
-
-
-
+#eval{
+#    $db->resultset('Post')->delete({
+#        title => 'Non-admin test post',
+#        owner_id => 0,
+#        private => 0,
+#    });
+#};
+#ok( $@ =~ m/Permission denied/, "Failed to delete post as non global admin Will" );
+#print $@;
+#
+## Verify non-admin can insert
+#eval{
+#    $db->resultset('Post')->insert({
+#        title => 'Non-admin test post',
+#        owner_id => 0,
+#        private => 0,
+#    });
+#};
+#ok( $@ =~ m/Permission denied/, "Failed to insert post as non global admin Will" );
+#print $@;
+#
 
 # vi: syntax=perl
