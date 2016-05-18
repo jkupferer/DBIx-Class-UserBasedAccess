@@ -182,7 +182,7 @@ database backed application.
 Access control is managed through ResultSet classes for search and find
 restrictions and through Result classes for all other actions. For ResultSet
 the restrictions are implemented through user_search_restrictions. For other
-actions (insert, update, detele) these are implemented on the Result class
+actions (insert, update, delete) these are implemented on the Result class
 named __user_may_*, __user_allowed_actions or the has_priv method on the user
 class.
 
