@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Test::More tests => 21;
+use Test::More tests => 27;
 
 use FindBin ();
 use lib "$FindBin::Bin/../lib";
@@ -86,7 +86,6 @@ ok( $@ =~ m/Permission denied/, "Failed to create post as non global admin Will"
 print $@;
 
 # Verify non-admin can't update 
-
 ok($db->resultset('Post')->update({
     title => 'Non-admin test post',
     owner_id => $dbuser->id,
@@ -94,26 +93,16 @@ ok($db->resultset('Post')->update({
     }), "cannot update post as non admin Will");
 
 # Verify non-admin can't delete 
-#eval{
-#    $db->resultset('Post')->delete({
-#        title => 'Non-admin test post',
-#        owner_id => 0,
-#        private => 0,
-#    });
-#};
-#ok( $@ =~ m/Permission denied/, "Failed to delete post as non global admin Will" );
-#print $@;
-#
-## Verify non-admin can insert
-#eval{
-#    $db->resultset('Post')->insert({
-#        title => 'Non-admin test post',
-#        owner_id => 0,
-#        private => 0,
-#    });
-#};
-#ok( $@ =~ m/Permission denied/, "Failed to insert post as non global admin Will" );
-#print $@;
-#
+ok($db->resultset('Post')->delete(), "cannot delete post as non admin Will");
+
+# Third User
+ok( $dbuser = $db->resultset('User')->find({ name => 'Johnathan' }), "find Johnathan user" );
+ok( $db->effective_user($dbuser), "set effective user to Johnathan" );
+ok( $db->real_user($dbuser), "set real user to Johnathan" );
+ok( !$dbuser->global_admin, "Johnathan is not global admin" );
+
+# Verify non-admin has privilages based on has_priv subroutine
+ok($dbuser->has_priv('POST'));
+
 
 # vi: syntax=perl
