@@ -36,11 +36,23 @@ __PACKAGE__->has_many(
   { "foreign.owner_id" => "self.id" },
 );
 
-__PACKAGE__->meta->make_immutable;
 
 sub user_name : method
 {
     my $self = shift;
     return $self->name;
 }
+
+sub has_priv : method
+{
+    my $self = shift;
+    my ($priv) = @_;
+    if($priv eq 'POST' and $self->name eq 'Johnathan'){
+        return 1;
+    }else{
+        return 0;
+    }
+}
+
+__PACKAGE__->meta->make_immutable;
 1;
